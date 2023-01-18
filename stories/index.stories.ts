@@ -31,6 +31,7 @@ const Template: Story<ArgTypes> = ({
   slot,
 }: ArgTypes) => html`
   <three-wave
+    id='wav'
     style="--three-wave-text-color: ${textColor || 'black'}"
     .title=${title}
     .counter=${counter}
