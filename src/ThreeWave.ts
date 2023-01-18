@@ -7,7 +7,10 @@ function getSine(sampleNumber: number, sampleRate: number, sineRate: number){
   return Math.sin(2*Math.PI*sineRate/sampleRate*sampleNumber);
 };
 
-function logCameraMetrics(camera: THREE.PerspectiveCamera, cameraZpos: number, samplesPerBuffer: number){
+function logCameraMetrics(camera: THREE.PerspectiveCamera, 
+        cameraZpos: number, 
+        samplesPerBuffer: number,
+        bufferDuration: number){
   const aspectRatio = camera.aspect;
   console.log(`The aspect ratio of the camera is ${aspectRatio}`);
 
@@ -22,7 +25,18 @@ function logCameraMetrics(camera: THREE.PerspectiveCamera, cameraZpos: number, s
   const height = 2 * distance * Math.tan(verticalFov / 2);
 
   console.log(`The camera FOV allows ${width} pixels in width and ${height} pixels in height`)
-  console.log(`When buffer start lines are active, that's approx ${width / samplesPerBuffer} lines.`)
+  
+  const numberOfBuffersDisplayed = width / samplesPerBuffer;
+  
+  console.log(`When buffer start lines are active, that's approx ${numberOfBuffersDisplayed} lines.`)
+
+  const totalTimeInViewForSampleRate = numberOfBuffersDisplayed * bufferDuration;
+
+  console.log(`As there are ${numberOfBuffersDisplayed} lines, that's a total time of ${totalTimeInViewForSampleRate / 1000} seconds.`)
+
+  const scrollRateInPixels = width / (totalTimeInViewForSampleRate / 1000);
+
+  console.log(`Therefor scroll rate is ${scrollRateInPixels} pixels per second.`);
 
 }
 
@@ -71,12 +85,13 @@ export class ThreeWave extends LitElement {
 
   };
 
-  cameraZpos: number = 60;
+  @property()
+  cameraZpos: number = 50;
 
   firstUpdated(){ 
 
     const bitDepth = 4; // 16 values
-    const sampleRate = 1000 // samples per second (need to get this update 44.1k)
+    const sampleRate = 200 // samples per second (need to get this update 44.1k)
     const intervalPeriodms = 100;
     const bufferSize = sampleRate*intervalPeriodms/1000;
     const sineFrequency = 1;
@@ -107,7 +122,7 @@ export class ThreeWave extends LitElement {
     this.scene = scene;
     const camera = new THREE.PerspectiveCamera( 75, width / height, 0.1, 1000 );
 
-    logCameraMetrics(camera, this.cameraZpos, bufferSize);
+    logCameraMetrics(camera, this.cameraZpos, bufferSize, intervalPeriodms);
 
     const renderer = new THREE.WebGLRenderer();
     renderer.setSize( width, height );
@@ -117,17 +132,19 @@ export class ThreeWave extends LitElement {
     renderer.setClearColor(bgColor);
  
     camera.position.z = this.cameraZpos;
-    camera.position.x = 0;
+    camera.position.x = -330;  // needs to be a function of display
 
-    const scrollRate = .001 * sampleRate;
-
+    let previousTime = 0;
     // Render the scene
-    function animate() {
-      camera.position.x+=scrollRate;
+    function animate( time: number ) {
+      const delta = time - previousTime;
+      previousTime = time;
+      // - screen size 
+      camera.position.x+= sampleRate / 1000 * delta;
       requestAnimationFrame( animate );
       renderer.render(scene, camera );
     }
-    animate();
+    requestAnimationFrame( animate );
 
 }
 
